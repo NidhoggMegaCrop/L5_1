@@ -7,31 +7,80 @@ NOTE:
    FbFriend
 ===============
 
-- Worst-case time complexity: O(...)
+- Worst-case time complexity: O(n)
 
-- Explanation: ...
+- Explanation:
+  Converting each of the two names to an id uses nameToId, which calls
+  MapContains (O(log n)) and MapGet (O(log n)), so the two conversions
+  cost O(log n) in total.
+  We then call inAdjList to check whether the two people are already
+  friends. inAdjList traverses an adjacency list, which in the worst case
+  contains all of the other n - 1 people (a person friends with everyone
+  else), so this is O(n).
+  If they are not already friends, insertInOrder is called twice (once
+  for each person). Each call walks along an adjacency list to find the
+  correct sorted position, which in the worst case means traversing all
+  n - 1 existing friends, so each insertion is O(n). Creating the new
+  node with newAdjNode is O(1).
+  The dominant terms are all O(n), so the overall worst-case time
+  complexity is O(n).
 
 ===============
  FbNumFriends
 ===============
 
-- Worst-case time complexity: O(...)
+- Worst-case time complexity: O(n)
 
-- Explanation: ...
+- Explanation:
+  Converting the name to an id with nameToId costs O(log n) (MapContains
+  and MapGet are both O(log n)).
+  The function then traverses the person's adjacency list once, doing
+  O(1) work per node to increment a counter. In the worst case the person
+  is friends with all n - 1 other people, so the list has n - 1 nodes and
+  the traversal is O(n).
+  The O(n) traversal dominates the O(log n) lookup, so the overall
+  worst-case time complexity is O(n).
 
 ===============
 FbMutualFriends
 ===============
 
-- Worst-case time complexity: O(...)
+- Worst-case time complexity: O(n^2)
 
-- Explanation: ...
+- Explanation:
+  Converting the two names to ids with nameToId costs O(log n) in total,
+  and ListNew is O(1).
+  The function then loops over every friend of the first person. In the
+  worst case the first person is friends with all n - 1 other people, so
+  the loop runs O(n) times. Each iteration calls inAdjList on the second
+  person's adjacency list, which is O(n) in the worst case (the second
+  person could also be friends with everyone). If the friend is mutual,
+  ListAppend is called, which is O(1) (it copies a name, whose length is
+  bounded by the constant MAX_NAME_LEN, so this is O(1)).
+  This gives O(n) iterations each costing O(n), for O(n^2) overall, which
+  dominates the O(log n) lookups. The overall worst-case time complexity
+  is therefore O(n^2).
 
 ===============
  FbFriendRecs1
 ===============
 
-- Worst-case time complexity: O(...)
+- Worst-case time complexity: O(n^2)
 
-- Explanation: ...
-
+- Explanation:
+  Converting the name to an id with nameToId is O(log n), and allocating
+  the numMutual counting array with calloc is O(n).
+  The nested loop counts mutual friends: for each friend f of the person
+  (up to n - 1 of them), it iterates over every friend of f (up to n - 1
+  of them), doing O(1) work per inner iteration. In the worst case this
+  is O(n) * O(n) = O(n^2).
+  The next loop builds the recommendations. It examines all n people, and
+  for each one calls inAdjList (O(n)) to check whether that person is
+  already a friend. Copying a name into a recommendation with strcpy is
+  O(1) because names are bounded by MAX_NAME_LEN. This loop is therefore
+  O(n) * O(n) = O(n^2).
+  Finally, the recommendations are sorted in descending order of mutual
+  friends using selection sort. There can be up to n - 1 recommendations,
+  so this is O(n^2).
+  Every part is at most O(n^2), so the overall worst-case time complexity
+  is O(n^2).

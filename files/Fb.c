@@ -37,6 +37,8 @@ static void increaseCapacity(Fb fb);
 static int nameToId(Fb fb, char *name);
 static bool inAdjList(struct adjNode *list, int v);
 static struct adjNode *newAdjNode(int v);
+static struct adjNode *insertInOrder(struct adjNode *list, int v);
+static struct adjNode *deleteFromList(struct adjNode *list, int v);
 
 // Please ignore this line
 static struct adjNode * __attribute__((unused)) newAdjNode(int v);
@@ -180,29 +182,162 @@ static bool inAdjList(struct adjNode *list, int v) {
 // Your tasks
 
 bool FbFriend(Fb fb, char *name1, char *name2) {
-	// TODO: Task 1 - Implement this function
-	return false;
+	int id1 = nameToId(fb, name1);
+	int id2 = nameToId(fb, name2);
+
+	// If they are already friends, there is nothing to do.
+	if (inAdjList(fb->adj[id1], id2)) {
+		return false;
+	}
+
+	// Friendship goes both ways, so add each person to the other's
+	// adjacency list, keeping the lists in ascending order.
+	fb->adj[id1] = insertInOrder(fb->adj[id1], id2);
+	fb->adj[id2] = insertInOrder(fb->adj[id2], id1);
+	return true;
+}
+
+// Inserts v into the given adjacency list so that the list remains in
+// ascending order. Assumes v is not already in the list.
+static struct adjNode *insertInOrder(struct adjNode *list, int v) {
+	struct adjNode *newNode = newAdjNode(v);
+
+	// Insert at the head if the list is empty or v is smaller than the
+	// first element.
+	if (list == NULL || v < list->v) {
+		newNode->next = list;
+		return newNode;
+	}
+
+	// Otherwise, find the node after which v should be inserted.
+	struct adjNode *curr = list;
+	while (curr->next != NULL && curr->next->v < v) {
+		curr = curr->next;
+	}
+	newNode->next = curr->next;
+	curr->next = newNode;
+	return list;
 }
 
 int FbNumFriends(Fb fb, char *name) {
-	// TODO: Task 2 - Implement this function
-	return -1;
+	int id = nameToId(fb, name);
+
+	// The number of friends is simply the length of the person's
+	// adjacency list.
+	int count = 0;
+	for (struct adjNode *curr = fb->adj[id]; curr != NULL; curr = curr->next) {
+		count++;
+	}
+	return count;
 }
 
 List FbMutualFriends(Fb fb, char *name1, char *name2) {
-	// TODO: Task 3 - Implement this function
+	int id1 = nameToId(fb, name1);
+	int id2 = nameToId(fb, name2);
+
 	List l = ListNew();
+
+	// A person is a mutual friend if they appear in both adjacency lists.
+	// Scan the friends of the first person, and add anyone who is also a
+	// friend of the second person.
+	for (struct adjNode *curr = fb->adj[id1]; curr != NULL; curr = curr->next) {
+		if (inAdjList(fb->adj[id2], curr->v)) {
+			ListAppend(l, fb->names[curr->v]);
+		}
+	}
 	return l;
 }
 
 bool FbUnfriend(Fb fb, char *name1, char *name2) {
-	// TODO: Task 4 - Implement this function
-	return false;
+	int id1 = nameToId(fb, name1);
+	int id2 = nameToId(fb, name2);
+
+	// If they are not friends, there is nothing to unfriend.
+	if (!inAdjList(fb->adj[id1], id2)) {
+		return false;
+	}
+
+	// Unfriending goes both ways, so remove each person from the other's
+	// adjacency list.
+	fb->adj[id1] = deleteFromList(fb->adj[id1], id2);
+	fb->adj[id2] = deleteFromList(fb->adj[id2], id1);
+	return true;
+}
+
+// Removes the node containing v from the given adjacency list and frees
+// it, returning the (possibly new) head of the list. If v is not in the
+// list, the list is returned unchanged.
+static struct adjNode *deleteFromList(struct adjNode *list, int v) {
+	struct adjNode *curr = list;
+	struct adjNode *prev = NULL;
+	while (curr != NULL && curr->v != v) {
+		prev = curr;
+		curr = curr->next;
+	}
+
+	if (curr == NULL) {
+		return list;
+	}
+
+	if (prev == NULL) {
+		list = curr->next;
+	} else {
+		prev->next = curr->next;
+	}
+	free(curr);
+	return list;
 }
 
 int FbFriendRecs1(Fb fb, char *name, struct recommendation recs[]) {
-	// TODO: Task 5 - Implement this function
-	return 0;
+	int id = nameToId(fb, name);
+	int n = fb->numPeople;
+
+	// Count how many mutual friends each person shares with the given
+	// person. For every friend f of the person, each friend of f shares
+	// the mutual friend f with the person.
+	int *numMutual = calloc(n, sizeof(int));
+	if (numMutual == NULL) {
+		fprintf(stderr, "error: out of memory\n");
+		exit(EXIT_FAILURE);
+	}
+	for (struct adjNode *f = fb->adj[id]; f != NULL; f = f->next) {
+		for (struct adjNode *g = fb->adj[f->v]; g != NULL; g = g->next) {
+			numMutual[g->v]++;
+		}
+	}
+
+	// Build a recommendation for each person who shares at least one
+	// mutual friend with the person, is not the person themselves, and is
+	// not already a friend of the person.
+	int numRecs = 0;
+	for (int g = 0; g < n; g++) {
+		if (g == id || numMutual[g] == 0 || inAdjList(fb->adj[id], g)) {
+			continue;
+		}
+		strcpy(recs[numRecs].name, fb->names[g]);
+		recs[numRecs].numMutualFriends = numMutual[g];
+		numRecs++;
+	}
+
+	free(numMutual);
+
+	// Sort the recommendations in descending order on the number of
+	// mutual friends shared, using selection sort.
+	for (int i = 0; i < numRecs - 1; i++) {
+		int max = i;
+		for (int j = i + 1; j < numRecs; j++) {
+			if (recs[j].numMutualFriends > recs[max].numMutualFriends) {
+				max = j;
+			}
+		}
+		if (max != i) {
+			struct recommendation tmp = recs[i];
+			recs[i] = recs[max];
+			recs[max] = tmp;
+		}
+	}
+
+	return numRecs;
 }
 
 ////////////////////////////////////////////////////////////////////////
