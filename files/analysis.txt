@@ -1,0 +1,37 @@
+
+NOTE:
+- Your time complexities should be in terms of n, where n is the number
+  of people.
+
+===============
+   FbFriend
+===============
+
+- Worst-case time complexity: O(...)
+
+- Explanation: ...
+
+===============
+ FbNumFriends
+===============
+
+- Worst-case time complexity: O(...)
+
+- Explanation: ...
+
+===============
+FbMutualFriends
+===============
+
+- Worst-case time complexity: O(...)
+
+- Explanation: ...
+
+===============
+ FbFriendRecs1
+===============
+
+- Worst-case time complexity: O(...)
+
+- Explanation: ...
+
